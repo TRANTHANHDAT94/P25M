@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# SUGGESTED CONNECTIONS, but you can of course do it differenlty!
 ##############################################################             
 #           Raspberry Pi 3 GPIO Pinout;           Corner --> #
 #                    (pin 1)  | (pin 2)                      #                  
@@ -31,8 +27,8 @@
 
 import pigpio, smbus
 import atexit 
-import re, commands
-import psutil        # http://psutil.readthedocs.io/en/latest/
+import re, subprocess
+import psutil        
 
 import yaml
 
@@ -94,13 +90,13 @@ class BOX(object):
         else:
             pass
 
-        print '    testing self.use_pigpio: ', self.use_pigpio
+        print('    testing self.use_pigpio: ', self.use_pigpio)
         if self.use_pigpio:
-            print '    it was True'
+            print('    it was True')
             self.make_a_pi()
             self.logger.info("make_a_pi()") 
         else:
-            print '    it was False'
+            print('    it was False')
             self.pi              = None
             self.pigpiod_process = None
 
@@ -141,27 +137,27 @@ class BOX(object):
 
     def make_a_pi(self):
 
-        status, process = commands.getstatusoutput('sudo pidof pigpiod')   # check it
+        status, process = subprocess.getstatusoutput('sudo pidof pigpiod')   # check it
 
         if status:  #  it wasn't running, so start it
-            print "pigpiod was not running"
+            print("pigpiod was not running")
             self.logger.info("pigpiod was not running") 
-            commands.getstatusoutput('sudo pigpiod')  # start it
+            subprocess.getstatusoutput('sudo pigpiod')  # start it
             time.sleep(0.5)
-            status, process = commands.getstatusoutput('sudo pidof pigpiod')   # check it again        
+            status, process = subprocess.getstatusoutput('sudo pidof pigpiod')   # check it again        
 
         if not status:  # if it worked, i.e. if it's running...
             self.pigpiod_process = process
-            print "pigpiod is running, process ID is: ", self.pigpiod_process
+            print("pigpiod is running, process ID is: ", self.pigpiod_process)
             self.logger.info("pigpiod is running, process ID is: {}".format(self.pigpiod_process))
 
             try:
                 self.pi = pigpio.pi()  # local GPIO only
-                print "pi is instantiated successfully"
+                print("pi is instantiated successfully")
                 self.logger.info("pi is instantiated successfully")
-            except Exception, e:
+            except Exception as e:
                 str_e = str(e)
-                print "problem instantiating pi, the exception message is: ", str_e
+                print("problem instantiating pi, the exception message is: ", str_e)
                 self.logger.warning("problem instantiating pi: {}".format(str_e))
                 self.start_pigpiod_exception = str_e
 
@@ -174,7 +170,7 @@ class BOX(object):
             elif on_or_off.lower() == 'off':
                 self.WiFi_off()
             else:
-                print "WiFi_onoff unrecognized string"
+                print("WiFi_onoff unrecognized string")
                 self.logger.warning("WiFi_onoff unrecognized string: {}".format(on_or_off))
         else:
             if on_or_off:
@@ -185,41 +181,41 @@ class BOX(object):
     def get_WiFi_is_on(self):
         WiFi_is_on = None
         try:
-            stat, isblocked = commands.getstatusoutput("sudo rfkill list " +
+            stat, isblocked = subprocess.getstatusoutput("sudo rfkill list " +
                                                        str(self.nWiFi) +
                                                        " | grep Soft | awk '{print $3}'")
             if isblocked == 'yes':
                 WiFi_is_on = False
-                print "WiFi is off"
+                print("WiFi is off")
                 self.logger.info("WiFi is off")
             elif isblocked == 'no':
                 WiFi_is_on = True
-                print "WiFi is on" 
+                print("WiFi is on") 
                 self.logger.info("WiFi is on")
             else:
-                print "can't tell if WiFi is on or off"
+                print("can't tell if WiFi is on or off")
         except:
-            print "problem checking WiFi status"
+            print("problem checking WiFi status")
             self.logger.warning("problem checking WiFi status") 
 
         return WiFi_is_on
 
     def WiFi_on(self):
-        stat, out = commands.getstatusoutput("sudo rfkill unblock " + str(self.nWiFi))
+        stat, out = subprocess.getstatusoutput("sudo rfkill unblock " + str(self.nWiFi))
         if stat:
-            print "problem turning WiFi on" , stat, out       
+            print("problem turning WiFi on" , stat, out)       
             self.logger.warning("problem turning WiFi on") 
 
     def WiFi_off(self):
         
-        stat, out = commands.getstatusoutput("sudo rfkill block " + str(self.nWiFi))
+        stat, out = subprocess.getstatusoutput("sudo rfkill block " + str(self.nWiFi))
         if stat:
-            print "problem turning WiFi off"
+            print("problem turning WiFi off")
             self.logger.warning("problem turning WiFi off") 
 
     def _get_nWiFi(self):
 
-        stat, out = commands.getstatusoutput("sudo rfkill list | grep phy0 | awk '{print $1}'")
+        stat, out = subprocess.getstatusoutput("sudo rfkill list | grep phy0 | awk '{print $1}'")
         try:
             self.nWiFi = int(out.replace(':', '')) # confirm by checking that it can be an integer
             self.logger.info("nWiFi: {}".format(self.nWiFi))  # heyhere
@@ -231,7 +227,7 @@ class BOX(object):
     # METHODS that involve ntpdate
 
     def _do_ntpdate(self):
-        stat, out = commands.getstatusoutput("sudo ntpdate")
+        stat, out = subprocess.getstatusoutput("sudo ntpdate")
         # needs work!
         return stat, out
 
@@ -244,7 +240,7 @@ class BOX(object):
         # Wow! https://stackoverflow.com/questions/24196932/how-can-i-get-the-ip-address-of-eth0-in-python
         # also https://stackoverflow.com/questions/159137/getting-mac-address
 
-        ifconfig = commands.getoutput("ifconfig eth0 " +
+        ifconfig = subprocess.getoutput("ifconfig eth0 " +
                                       " | grep HWaddr | " + 
                                       "awk '{print $5}'")
         # print ' ifconfig: ', ifconfig
@@ -263,7 +259,7 @@ class BOX(object):
         things     = ('uname -a', 'lsb_release -a', 'df -h', 'free',
                      'vcgencmd measure_temp')
         for thing in things:
-            err, msg = commands.getstatusoutput(thing)
+            err, msg = subprocess.getstatusoutput(thing)
             if not err:
                 info_lines += ['COMMAND: ' + thing +
                                ' returns: ' + msg, '--------']
@@ -277,7 +273,7 @@ class BOX(object):
     def print_some_system_info_lines(self):
         info_lines = _get_some_system_info_lines()
         for line in info_lines:
-            print line
+            print(line)
      
 
     def get_system_datetime(self):
@@ -292,7 +288,7 @@ class BOX(object):
 
     def show_CPU_temp(self):
         temp = None
-        err, msg = commands.getstatusoutput('vcgencmd measure_temp')
+        err, msg = subprocess.getstatusoutput('vcgencmd measure_temp')
         #if not err:
             #m = re.search(r'-?\d+\.?\d*', msg)
             #try:
@@ -304,17 +300,17 @@ class BOX(object):
     
     def add_device(self, device):
         if type(device.name) is not str:
-            print "device not added, type(device.name) is not str: {}".format(device.name)
+            print("device not added, type(device.name) is not str: {}".format(device.name))
             self.logger.error("device not added, type(device.name) is not str: {}".format(device.name))  # heyhere
         elif len(device.name) == 0:
-            print "device not added, zero-length name not allowed"
+            print("device not added, zero-length name not allowed")
             self.logger.error("device not added, zero-length name not allowed")  # heyhere
         elif self.get_device(device.name) is not None:
-            print "device with name '{}' not added, that name is already present".format(device.name)
+            print("device with name '{}' not added, that name is already present".format(device.name))
             self.logger.error("device with name '{}' not added, that name is already present".format(device.name))  # heyhere
         else:
             self.devices.append(device)
-            print "device with unique name '{}' successfully added".format(device.name)
+            print("device with unique name '{}' successfully added".format(device.name))
             self.logger.info("device with unique name '{}' successfully added".format(device.name))  # heyhere
         
         
@@ -447,7 +443,7 @@ class LASS(object):
             if all([type(x) in (float, int) for x in latlon[:2]]):
                 self.static_lat = latlon[0]
                 self.static_lon = latlon[1]
-                print "static latitude and longitude set."
+                print("static latitude and longitude set.")
                 self.box.logger.info("set static latitude: {} longitude: {}"
                                      .format(self.static_lat, self.static_lon))
             elif all([type(x) is str for x in latlon[:2]]):
@@ -455,17 +451,17 @@ class LASS(object):
                     lat, lon = [float(x) for x in latlon[:2]]
                     self.static_lat = lat
                     self.static_lon = lon
-                    print "static latitude and longitude set."
+                    print("static latitude and longitude set.")
                     self.box.logger.info("set static latitude: {} longitude: {}"
                                          .format(self.static_lat, self.static_lon)) 
                 except:
-                    print "static latitude and longitude set has failed!"
+                    print("static latitude and longitude set has failed!")
                     self.box.logger.error("static latitude and longitude set has failed!") 
                     pass
 
         if type(alt) is float:
             self.static_alt = alt
-            print "static altitude set."
+            print("static altitude set.")
             self.box.logger.info("sstatic altitude set: {}".format(self.static_alt)) 
         
     def set_sources(self, humsrc=None, tempsrc=None, pm25src=None,
@@ -584,7 +580,7 @@ class LASS(object):
 
         systdd = self.box.get_system_timedate_dict()
               
-        for key, (source, param) in self.source_dict.items():
+        for key, (source, param) in list(self.source_dict.items()):
             if (key in ('time', 'date', 'ticks') and source == 'system'):
                 thing = systdd[param]
                 if type(thing) is str and len(thing) >=8:
@@ -630,11 +626,11 @@ class LASS(object):
         return self.LASS_string 
 
     def send_to_LASS(self):
-        print "=============================="
-        print time.ctime(), self.LASS_string
+        print("==============================")
+        print(time.ctime(), self.LASS_string)
         self.box.logger.info("send_to_LASS: {}".format(self.LASS_string))
         self.client.publish(self.topic, "%s" % ( self.LASS_string ))
-        print "=============================="
+        print("==============================")
         # return self.LASS_string
         pass
 
@@ -711,12 +707,12 @@ class LOG(object):
 
     def configure(self, logconfigure_dict):
 
-        for device, datakeys in logconfigure_dict.items():
+        for device, datakeys in list(logconfigure_dict.items()):
             if device in self.box.devices:
                 self.devices.append((device, datakeys))
                 # does not test if datakeys are there, device may be flexible.
             else:
-                print "Not added. This is not in box.devices"
+                print("Not added. This is not in box.devices")
 
     def build_entry(self, sysinfo_interval=None):
         
@@ -758,14 +754,14 @@ class LOG(object):
             lines += self.datadict.pop('sysinfolines')
         except:
             pass
-        for key, info in self.datadict.items():
+        for key, info in list(self.datadict.items()):
             lines += [key]
             if type(info) is list:
                 lines += info
             elif type(info) is str:
                 lines += [info]
             elif type(info) is dict:
-                for datakey, data in info.items():
+                for datakey, data in list(info.items()):
                     lines += ['  datakey: ' + datakey + ' = ' + str(data)]
 
         with open(self.filename, 'a') as outfile:   # note, append!!!
@@ -1019,7 +1015,7 @@ class GPSbb(GPIO_DEVICE):
         gprmc = [s for s in all_lines if "$GPRMC" in s]
     
         if gprmc is not None:
-            print "---Parsing GPRMC---", gprmc[0]
+            print("---Parsing GPRMC---", gprmc[0])
             gdata = gprmc[0].split(",")
 
             status    = gdata[1]
@@ -1056,7 +1052,7 @@ class GPSbb(GPIO_DEVICE):
             self.datadict['speed']             = speed
             self.datadict['fix']               = 1
             self.last_read_is_good             = True        
-            print "time : %s, latitude : %s(%s), longitude : %s(%s), speed : %s, True Course : %s, Date : %s" %  (receive_t, latitude , dir_lat, longitute, dir_lon, speed, trCourse, receive_d)
+            print("time : %s, latitude : %s(%s), longitude : %s(%s), speed : %s, True Course : %s, Date : %s" %  (receive_t, latitude , dir_lat, longitute, dir_lon, speed, trCourse, receive_d))
         else:
             self.datadict['fix']               = 0
 
@@ -1290,13 +1286,13 @@ class OLEDi2c(GPIO_DEVICE):
             with open(fname, 'r') as infile:
                 self.yamldict = yaml.load(infile)
         except:
-            print "yaml read failed for some reason"
+            print("yaml read failed for some reason")
 
         try:
-            for sname, sdef in self.yamldict.items():
+            for sname, sdef in list(self.yamldict.items()):
                 screen = self.new_screen(sname)
                 if 'fields' in sdef:
-                    for fname, fdef in sdef['fields'].items():
+                    for fname, fdef in list(sdef['fields'].items()):
                         xy0  = fdef['xy0']
                         args = fdef['args']
                         infopairs = args['info']
@@ -1308,17 +1304,17 @@ class OLEDi2c(GPIO_DEVICE):
                             
                         screen.new_field(fname, xy0, **args)
 
-            print "successfull oled yaml setup!"
+            print("successfull oled yaml setup!")
 
             for s in self.screens:
-                print s
+                print(s)
                 for f in s.fields:
-                    print '  ', f
+                    print('  ', f)
 
             return self.yamldict
         
         except:
-            print "yaml setup could not be implemented successfully for some reason"
+            print("yaml setup could not be implemented successfully for some reason")
             pass                        
 
     def new_screen(self, name):
@@ -1376,7 +1372,7 @@ class OLEDi2c(GPIO_DEVICE):
 
         self.bus.write_byte_data(self.ADDR, self.cmdmode, self.SSD1306_NORMALDISPLAY)         # 0xA6
 
-        print "OLED inited!"
+        print("OLED inited!")
 
     def display_off(self):
 
@@ -1457,8 +1453,8 @@ class OLEDi2c(GPIO_DEVICE):
                 sc = [s for s in self.screens if
                        s.name == scrn][0]
             except:
-                print " oh, I couldn't find s.name = ", scrn
-                print " all of the names are: ", [s.name for s in self.screens]
+                print(" oh, I couldn't find s.name = ", scrn)
+                print(" all of the names are: ", [s.name for s in self.screens])
                 sc = None
             
         return sc
@@ -1472,7 +1468,7 @@ class OLEDi2c(GPIO_DEVICE):
             self.array = showscreen.array.copy()
             self.show_array()
         else:
-            print "screen not found"
+            print("screen not found")
         return showscreen
 
     def preview_screen(self, previewscreen):  # heytoday this is updated!
@@ -1499,8 +1495,8 @@ class OLEDi2c(GPIO_DEVICE):
 
     def array_stats(self):
 
-        print "self.array.min(), self.array.max(): ", self.array.min(), self.array.max()
-        print "self.array.shape, self.array.dtype: ", self.array.shape, self.array.dtype
+        print("self.array.min(), self.array.max(): ", self.array.min(), self.array.max())
+        print("self.array.shape, self.array.dtype: ", self.array.shape, self.array.dtype)
 
     def _embed(self, small_array, big_array, big_index):
         """Overwrites values in big_array starting at big_index with those in small_array"""
@@ -1509,7 +1505,7 @@ class OLEDi2c(GPIO_DEVICE):
         try:
             big_array[slices] = small_array
         except:
-            print "field embed failed"
+            print("field embed failed")
 
     def show_image(self, filename, resize_method, conversion_method, threshold=None):
 
@@ -1517,7 +1513,7 @@ class OLEDi2c(GPIO_DEVICE):
         w0, h0 = self.img0.size
 
         self.box.logger.info("showimage opened size w0, h0 {}".format((w0, h0)))  
-        print "showimage opened size w0, h0 {}".format((w0, h0))
+        print("showimage opened size w0, h0 {}".format((w0, h0)))
 
         if resize_method == 'stretch':
 
@@ -1526,7 +1522,7 @@ class OLEDi2c(GPIO_DEVICE):
             self.imgr = self.img0.resize(new_size)
 
             self.box.logger.info("showimage new_size stretch {}".format(new_size))  
-            print "showimage new_size stretch {}".format(new_size)
+            print("showimage new_size stretch {}".format(new_size))
 
         elif resize_method == 'fit':
 
@@ -1534,23 +1530,23 @@ class OLEDi2c(GPIO_DEVICE):
             hscale = float(self.ny)/float(h0)
 
             if hscale <= wscale:
-                print "hscale <= wscale"
+                print("hscale <= wscale")
                 new_size = (int(w0*hscale), self.ny)
             else:
-                print "hscale > wscale"
+                print("hscale > wscale")
                 new_size = (self.nx, int(h0*hscale))
 
             self.imgr = self.img0.resize(new_size)
 
             self.box.logger.info("showimage new_size fit {}".format(new_size))
-            print "showimage new_size fit {}".format(new_size)
+            print("showimage new_size fit {}".format(new_size))
 
         else:
 
             self.imgr = None
 
             self.box.logger.error("showimage new_size failed")  
-            print "showimage new_size failed"
+            print("showimage new_size failed")
 
         if self.imgr:
 
@@ -1559,7 +1555,7 @@ class OLEDi2c(GPIO_DEVICE):
                 self.imgc  = self.imgr.convert("1")
 
                 self.box.logger.info("showimage convert default".format(new_size))
-                print "showimage convert default".format(new_size)
+                print("showimage convert default".format(new_size))
 
             elif conversion_method in ('threshold', ):
 
@@ -1567,14 +1563,14 @@ class OLEDi2c(GPIO_DEVICE):
                 self.imgc  = self.imgr8.point(lambda x: 0 if x < threshold else 1, mode='1')
 
                 self.box.logger.info("showimage convert threshold".format(new_size))
-                print "showimage convert threshold".format(new_size)
+                print("showimage convert threshold".format(new_size))
 
         else:
 
             imgc = None
 
             self.box.logger.error("showimage conversion failed")
-            print "showimage conversion failed"
+            print("showimage conversion failed")
 
         if self.imgc:
             
@@ -1588,12 +1584,12 @@ class OLEDi2c(GPIO_DEVICE):
 
             hoff = max(0, (sb0-sa0)/2-1)
             woff = max(0, (sb1-sa1)/2-1)
-            print "hoff = ", hoff
-            print "woff = ", woff
+            print("hoff = ", hoff)
+            print("woff = ", woff)
             
             self._embed(array, bigarray, (hoff, woff))
 
-            print "bigarray.shape: ", bigarray.shape
+            print("bigarray.shape: ", bigarray.shape)
             arrayf = bigarray.astype(float)
             arrayf = arrayf / arrayf.max()
 
@@ -1636,13 +1632,13 @@ class MCP3008bb(GPIO_DEVICE):
         except:
             pass
 
-        print "    #### Okay, here we go! "
-        print "self.CSbar:    ", self.CSbar
-        print "self.MISO:     ", self.MISO
-        print "self.MOSI:     ", self.MOSI
-        print "self.SCLK:     ", self.SCLK
-        print "self.SPI_baud: ", self.SPI_baud
-        print "self.SPI_MODE: ", self.SPI_MODE
+        print("    #### Okay, here we go! ")
+        print("self.CSbar:    ", self.CSbar)
+        print("self.MISO:     ", self.MISO)
+        print("self.MOSI:     ", self.MOSI)
+        print("self.SCLK:     ", self.SCLK)
+        print("self.SPI_baud: ", self.SPI_baud)
+        print("self.SPI_MODE: ", self.SPI_MODE)
 
         self.pi.bb_spi_open(self.CSbar, self.MISO, self.MOSI, 
                        self.SCLK, self.SPI_baud, self.SPI_MODE)
@@ -1717,7 +1713,7 @@ class MOS_gas_sensor(GPIO_DEVICE):
         self.gasname            = gasname
         self.atlimitsisokay     = atlimitsisokay
 
-        Resistdata,    ppmdata    = zip(*self.Calibrationdata)
+        Resistdata,    ppmdata    = list(zip(*self.Calibrationdata))
 
         self.ppmdata              = ppmdata
         self.Resistdata           = Resistdata
@@ -1811,8 +1807,8 @@ class SCREEN(object):
         try:
             field = [f for f in self.fields if f.name == fieldname][0]
         except:
-            print " oh, I couldn't find f.name = ", fieldname
-            print " all of the names are: ", [f.name for f in self.fields]
+            print(" oh, I couldn't find f.name = ", fieldname)
+            print(" all of the names are: ", [f.name for f in self.fields])
             field = None
             
         return field
@@ -1824,13 +1820,13 @@ class SCREEN(object):
         try:
             big_array[slices] = small_array
         except:
-            print "field embed failed"
+            print("field embed failed")
 
     def _update_array(self):
 
         self.array = np.zeros(self.nx * self.ny, dtype=int).reshape(self.ny, self.nx)
 
-        for field, xy0 in self.fields.items():
+        for field, xy0 in list(self.fields.items()):
 
             self._embed(field.array, self.array, xy0[::-1])
 
@@ -1860,7 +1856,7 @@ class SCREEN(object):
         w0, h0 = img0.width, img0.height
 
         self.box.logger.info("showimage opened size w0, h0 {}".format((w0, h0)))  
-        print "showimage opened size w0, h0 {}".format((w0, h0))
+        print("showimage opened size w0, h0 {}".format((w0, h0)))
 
         if resize_method == 'stretch':
 
@@ -1869,7 +1865,7 @@ class SCREEN(object):
             imgr = img0.resize(new_size)
 
             self.box.logger.info("showimage new_size stretch {}".format(new_size))  
-            print "showimage new_size stretch {}".format(new_size)
+            print("showimage new_size stretch {}".format(new_size))
 
         elif resize_method == 'fit':
 
@@ -1877,23 +1873,23 @@ class SCREEN(object):
             hscale = float(self.ny)/float(h0)
 
             if hscale <= wscale:
-                print "hscale <= wscale"
+                print("hscale <= wscale")
                 new_size = (int(w0*hscale), self.ny)
             else:
-                print "hscale > wscale"
+                print("hscale > wscale")
                 new_size = (self.nx, int(h0*hscale))
 
             imgr = img0.resize(new_size)
 
             self.box.logger.info("showimage new_size fit {}".format(new_size))
-            print "showimage new_size fit {}".format(new_size)
+            print("showimage new_size fit {}".format(new_size))
 
         else:
 
             imgr = None
 
             self.box.logger.error("showimage new_size failed")  
-            print "showimage new_size failed"
+            print("showimage new_size failed")
 
         if imgr:
 
@@ -1902,7 +1898,7 @@ class SCREEN(object):
                 imgc  = imgr.convert("1")
 
                 self.box.logger.info("showimage convert default".format(new_size))
-                print "showimage convert default".format(new_size)
+                print("showimage convert default".format(new_size))
 
             elif conversion_method in ('threshold', ):
 
@@ -1910,14 +1906,14 @@ class SCREEN(object):
                 imgc  = imgr8.point(lambda x: 0 if x < threshold else 1, mode='1')
 
                 self.box.logger.info("showimage convert threshold".format(new_size))
-                print "showimage convert threshold".format(new_size)
+                print("showimage convert threshold".format(new_size))
 
         else:
 
             imgc = None
 
             self.box.logger.error("showimage conversion failed")
-            print "showimage conversion failed"
+            print("showimage conversion failed")
 
         if imgc:
             
@@ -1931,12 +1927,12 @@ class SCREEN(object):
 
             hoff = max(0, (sb0-sa0)/2-1)
             woff = max(0, (sb1-sa1)/2-1)
-            print "hoff = ", hoff
-            print "woff = ", woff
+            print("hoff = ", hoff)
+            print("woff = ", woff)
             
             _embed(array, bigarray, (hoff, woff))
 
-            print "bigarray.shape: ", bigarray.shape
+            print("bigarray.shape: ", bigarray.shape)
             arrayf = bigarray.astype(float)
             arrayf = arrayf / arrayf.max()
             plt.figure()
@@ -1979,7 +1975,7 @@ class FIELD(object):
                 self.font = ImageFont.truetype(self.fontdef,
                                                self.fontsize)
             else:
-                print "fontdef problem!"
+                print("fontdef problem!")
             
         self.threshold       = threshold
         self.info            = info
@@ -1999,7 +1995,7 @@ class FIELD(object):
 
     def _stringit(self, fmt, data):
         xchar = '##'
-        xchar_alt = u'\u25A1\u25A0'
+        xchar_alt = '\u25A1\u25A0'
         pairs = self._get_pairs(fmt)
         if len(pairs) == 0:
             s = fmt.format()
@@ -2085,7 +2081,7 @@ def PiM25YAMLreader(fname):
 
         boxargs = boxdef['args']
 
-        print '  BOXARGS: ', boxargs
+        print('  BOXARGS: ', boxargs)
 
         box = BOX(boxname, **boxargs)
         
@@ -2094,7 +2090,7 @@ def PiM25YAMLreader(fname):
         boxes.append(box)
 
         GPIO_devices = boxdef['GPIO devices']
-        print "Box GPIO devices: ", GPIO_devices.keys()
+        print("Box GPIO devices: ", list(GPIO_devices.keys()))
 
         for j, (devname, devdef) in enumerate(GPIO_devices.items()):
             use_method = devdef['method']
@@ -2105,10 +2101,10 @@ def PiM25YAMLreader(fname):
             else:
                 device = method(devname)
             if 'oled' in device.devkind.lower() and 'screens' in devdef:
-                for sname, sdef in devdef['screens'].items():
+                for sname, sdef in list(devdef['screens'].items()):
                     screen = device.new_screen(sname)
                     if 'fields' in sdef:
-                        for fname, fdef in sdef['fields'].items():
+                        for fname, fdef in list(sdef['fields'].items()):
                             xy0  = fdef['xy0']
                             args = fdef['args']
                             infopairs = args['info']
@@ -2120,18 +2116,18 @@ def PiM25YAMLreader(fname):
                                 
                             screen.new_field(fname, xy0, **args)
         LASS_devices = boxdef['LASS devices']
-        print "Box LASS devices: ", LASS_devices.keys()
-        for LASSname, LASSdevice in LASS_devices.items():
+        print("Box LASS devices: ", list(LASS_devices.keys()))
+        for LASSname, LASSdevice in list(LASS_devices.items()):
             newLASS = box.new_LASS(LASSname)
             newLASS.set_static_location(**LASSdevice['static location'])
             sourcedict = LASSdevice['sources']
             newsourcedict = dict()
-            for key, src in sourcedict.items():
+            for key, src in list(sourcedict.items()):
                 if key == 'gassensors':
-                    print 'gassensors = ', src
+                    print('gassensors = ', src)
                     for gs in src:
                         source = box.get_device(gs)
-                        print '   zzzzzz: ', source.name
+                        print('   zzzzzz: ', source.name)
                 else:
                     if src not in ('static', 'system'):
                         source = box.get_device(src)

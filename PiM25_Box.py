@@ -72,30 +72,16 @@ readables = [d for d in box.devices if hasattr(d, 'read')]
 
 for d in readables:
     d.read()
-    print d, 'read is good: ', d.last_read_is_good
-
-
-#oled.YAMLsetup('oledyaml.yaml')
-#oled.initiate()
-#oled.display_on()
-#for thing in ('show_white', 'show_black', 'show_gray'):
-#    getattr(oled, thing)()
+    print((d, 'read is good: ', d.last_read_is_good))
+    
 
 while True:
-    print "loop!"
-    #oled.show_image('pim25b.bmp', resize_method='fit',
-    #                conversion_method='threshold', threshold=60)
+    print ("loop!")
     for d in readables:
         d.read()
     systimedic = box.get_system_timedate_dict()
     timedate.datadict.update(systimedic)
-        
     mylog.build_and_save_entry(sysinfo_interval=10)
-
     lass.build_entry()
-
     for cycle in range(2):
-    #    for s in oled.screens:
-    #        s.update()
-    #        oled.show_screen(s)
             time.sleep(1)
