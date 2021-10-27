@@ -316,4 +316,4 @@ Here is a quick review of python methods:
                     .__repr__()    
                     .update()
                     .preview_me()
-# Very important: You can use this code with python3 to support for machine learning also the data sending communication more and more 
+NOTETHAT: You can use this code with python3 to support for machine learning also the data sending communication more and more 
